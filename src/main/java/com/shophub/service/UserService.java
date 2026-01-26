@@ -3,12 +3,18 @@ package com.shophub.service;
 import com.shophub.dto.LoginRequest;
 import com.shophub.dto.RegisterRequest;
 import com.shophub.dto.AuthResponse;
+import com.shophub.exception.BadRequestException;
+import com.shophub.exception.ResourceNotFoundException;
+import com.shophub.exception.UnauthorizedException;
+import com.shophub.model.Role;
 import com.shophub.model.User;
 import com.shophub.repository.UserRepository;
 import com.shophub.security.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
 
 @Service
 public class UserService {
@@ -22,10 +28,13 @@ public class UserService {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
+    @Autowired
+    private RefreshTokenService refreshTokenService;
+
     public AuthResponse register(RegisterRequest request) {
         // Check if email already exists
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already registered");
+            throw new BadRequestException("Email already registered");
         }
 
         // Create new user
@@ -33,36 +42,74 @@ public class UserService {
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(request.getRole() != null ? request.getRole() : "customer");
+        user.setRole(Role.ROLE_CUSTOMER);
+        user.setCreatedAt(LocalDateTime.now());
 
         user = userRepository.save(user);
 
-        // Generate JWT token
-        String token = jwtTokenProvider.generateToken(user.getEmail());
+        String accessToken =
+            jwtTokenProvider.generateAccessToken(user.getEmail(), user.getRole().name());
 
-        return new AuthResponse(token, user.getId(), user.getName(),
-                user.getEmail(), user.getRole());
+        String refreshToken =
+            jwtTokenProvider.generateRefreshToken(user.getEmail());
+
+        refreshTokenService.createRefreshToken(
+            user,
+            refreshToken,
+            jwtTokenProvider.getRefreshTokenValidity()
+        );
+
+        return new AuthResponse(
+            accessToken,
+            refreshToken,
+            user.getId(),
+            user.getName(),
+            user.getEmail(),
+            user.getRole().name()
+        );
     }
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
 
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+                .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
 
-        // Verify password - this is the critical part
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid email or password");
+            throw new UnauthorizedException("Invalid email or password");
         }
 
-        // Generate JWT token
-        String token = jwtTokenProvider.generateToken(user.getEmail());
+        String accessToken =
+            jwtTokenProvider.generateAccessToken(user.getEmail(), user.getRole().name());
 
-        return new AuthResponse(token, user.getId(), user.getName(),
-                user.getEmail(), user.getRole());
+        String refreshToken =
+                jwtTokenProvider.generateRefreshToken(user.getEmail());
+
+        // Persist refresh token (single-token policy)
+        refreshTokenService.createRefreshToken(
+            user,
+            refreshToken,
+            jwtTokenProvider.getRefreshTokenValidity()
+        );
+
+        return new AuthResponse(
+                accessToken,
+                refreshToken,
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+            user.getRole().name()
+        );
+    }
+
+    public void deleteUser(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new ResourceNotFoundException("User not found");
+        }
+        userRepository.deleteById(id);
     }
 
 

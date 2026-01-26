@@ -1,6 +1,7 @@
 package com.shophub.repository;
 
 import com.shophub.model.User;
+import com.shophub.model.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -17,8 +18,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Boolean existsByEmail(String email);
 
     // Count only customers (exclude admins)
-    Long countByRole(String role);
+    Long countByRole(Role role);
 
     // NEW: Find all users by role
-    List<User> findByRole(String role);
+    List<User> findByRole(Role role);
 }

@@ -1,6 +1,9 @@
 package com.shophub.service;
 
 import com.shophub.dto.OrderRequest;
+import com.shophub.dto.GuestCheckoutRequest;
+import com.shophub.exception.BadRequestException;
+import com.shophub.exception.ResourceNotFoundException;
 import com.shophub.model.Order;
 import com.shophub.model.OrderItem;
 import com.shophub.model.Product;
@@ -29,12 +32,14 @@ public class OrderService {
         // Set user info
         if (user != null) {
             order.setUser(user);
+            order.setGuestOrder(false);
             order.setUserName(user.getName());
-            order.setUserEmail(user.getEmail());
+            order.setEmail(user.getEmail());
         } else {
             // Guest checkout
+            order.setGuestOrder(true);
             order.setUserName(request.getFirstName() + " " + request.getLastName());
-            order.setUserEmail(request.getEmail());
+            order.setEmail(request.getEmail());
         }
 
         // Set order details
@@ -55,11 +60,11 @@ public class OrderService {
 
         for (var itemRequest : request.getItems()) {
             Product product = productRepository.findById(itemRequest.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Product not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
             // ✅ CHECK STOCK AVAILABILITY BEFORE CREATING ORDER
             if (product.getStock() < itemRequest.getQuantity()) {
-                throw new RuntimeException("Insufficient stock for product: " + product.getName() +
+                throw new BadRequestException("Insufficient stock for product: " + product.getName() +
                         ". Available: " + product.getStock() +
                         ", Requested: " + itemRequest.getQuantity());
             }
@@ -90,6 +95,21 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
+    @Transactional
+    public Order createGuestOrder(GuestCheckoutRequest request) {
+        OrderRequest orderRequest = new OrderRequest();
+        String fullName = request.getFullName() == null ? "" : request.getFullName().trim();
+        String[] nameParts = fullName.split("\\s+", 2);
+        orderRequest.setFirstName(nameParts.length > 0 ? nameParts[0] : fullName);
+        orderRequest.setLastName(nameParts.length > 1 ? nameParts[1] : "");
+
+        orderRequest.setEmail(request.getEmail());
+        orderRequest.setAddress(request.getShippingAddress());
+        orderRequest.setItems(request.getItems());
+
+        return createOrder(orderRequest, null);
+    }
+
     public List<Order> getAllOrders() {
         return orderRepository.findAllByOrderByCreatedAtDesc();
     }
@@ -100,7 +120,7 @@ public class OrderService {
 
     public Order getOrderById(Long id) {
         return orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
     }
 
     @Transactional

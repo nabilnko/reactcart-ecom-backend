@@ -1,73 +1,62 @@
 package com.shophub.config;
 
+import com.shophub.security.JwtAuthenticationFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.Arrays;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
         http
-                .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        // ✅ PUBLIC ENDPOINTS
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/products/**").permitAll()
-                        .requestMatchers("/api/categories/**").permitAll()
-                        .requestMatchers("/api/contact/**").permitAll()
-                        .requestMatchers("/api/contact-messages").permitAll()
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(sm ->
+                sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            .authorizeHttpRequests(auth -> auth
 
-                        // ✅ ORDER ENDPOINTS
-                        .requestMatchers("/api/orders").permitAll()  // Create order (guest + auth)
-                        .requestMatchers("/api/orders/guest").permitAll()  // Guest checkout
-                        .requestMatchers("/api/orders/{id}").permitAll()  // View receipt (guest + auth)
-                        .requestMatchers("/api/orders/my-orders").permitAll()  // ✅ TEMPORARILY ALLOW - FIX LATER
-                        .requestMatchers("/api/orders/admin/**").permitAll()  // ✅ TEMPORARILY ALLOW - FIX LATER
+                // 🔓 PUBLIC (Guest allowed)
+                .requestMatchers(
+                    "/api/auth/**",
+                    "/api/products/**",
+                    "/api/checkout/guest"
+                ).permitAll()
 
-                        // ✅ USER ENDPOINTS
-                        .requestMatchers("/api/users/profile").permitAll()  // ✅ TEMPORARILY ALLOW
-                        .requestMatchers("/api/users/customers").permitAll()  // ✅ TEMPORARILY ALLOW
-                        .requestMatchers("/api/users/count").permitAll()  // ✅ TEMPORARILY ALLOW
+                // 🛒 CUSTOMER + ADMIN
+                .requestMatchers("/api/orders/**")
+                    .hasAnyRole("CUSTOMER", "ADMIN")
 
-                        // All other requests require authentication
-                        .anyRequest().permitAll()  // ✅ TEMPORARILY ALLOW ALL
-                );
+                // 👑 ADMIN ONLY
+                .requestMatchers("/api/admin/**")
+                    .hasRole("ADMIN")
+
+                // 🔐 Everything else
+                .anyRequest().authenticated()
+            )
+            .addFilterBefore(jwtAuthenticationFilter,
+                UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
+    // REQUIRED so Spring doesn't create in-memory users
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-
-        return source;
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
     }
 }

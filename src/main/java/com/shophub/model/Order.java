@@ -14,12 +14,17 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "user_id", nullable = true)
     private User user;
 
+    @Column(nullable = false)
+    private boolean guestOrder = false;
+
     private String userName;
-    private String userEmail;
+
+    @Column(name = "user_email", nullable = false)
+    private String email;
     private String firstName;
     private String lastName;
     private String phone;

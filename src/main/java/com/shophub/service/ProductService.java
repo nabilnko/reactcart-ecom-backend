@@ -2,6 +2,7 @@ package com.shophub.service;
 
 import com.shophub.model.Product;
 import com.shophub.repository.ProductRepository;
+import com.shophub.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -18,7 +19,7 @@ public class ProductService {
 
     public Product getProductById(Long id) {
         return productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
     }
 
     public List<Product> getProductsByCategory(String category) {

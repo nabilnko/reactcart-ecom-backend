@@ -1,5 +1,6 @@
 package com.shophub.security;
 
+import com.shophub.exception.UnauthorizedException;
 import com.shophub.model.User;
 import com.shophub.repository.UserRepository;
 import jakarta.servlet.FilterChain;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Collections;
 
 @Component
@@ -35,24 +37,42 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (jwt != null && jwtTokenProvider.validateToken(jwt)) {
                 String email = jwtTokenProvider.getEmailFromToken(jwt);
+                String role = jwtTokenProvider.getRoleFromToken(jwt);
+                String sessionId = jwtTokenProvider.getSessionFromToken(jwt);
 
-                // Get user from database
-                User user = userRepository.findByEmail(email).orElse(null);
-
-                if (user != null) {
-                    // Create authentication token with user's role
-                    Authentication authentication = new UsernamePasswordAuthenticationToken(
-                            user.getEmail(),
-                            null,
-                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole()))
-                    );
-
-                    // Set authentication in Spring Security context
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                if (email == null || role == null) {
+                    throw new IllegalArgumentException("Missing required JWT claims");
                 }
+
+                SimpleGrantedAuthority authority = new SimpleGrantedAuthority(role);
+
+                if (authority.equals(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
+                    User user = userRepository.findByEmail(email)
+                            .orElseThrow(() -> new UnauthorizedException("Admin not found"));
+
+                    if (sessionId == null || sessionId.isBlank() ||
+                            !Objects.equals(user.getActiveAdminSession(), sessionId)) {
+                        throw new UnauthorizedException("Admin session invalidated");
+                    }
+                }
+
+                Authentication authentication = new UsernamePasswordAuthenticationToken(
+                        email,
+                        null,
+                        Collections.singletonList(authority)
+                );
+
+                SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (Exception e) {
-            logger.error("Could not set user authentication in security context", e);
+            SecurityContextHolder.clearContext();
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            String message = (e.getMessage() == null || e.getMessage().isBlank())
+                    ? "Invalid or expired token"
+                    : e.getMessage().replace("\"", "\\\"");
+            response.getWriter().write("{\"error\": \"" + message + "\"}");
+            return;
         }
 
         filterChain.doFilter(request, response);

@@ -1,6 +1,8 @@
 package com.shophub.controller;
 
 import com.shophub.dto.ReviewRequest;
+import com.shophub.exception.ResourceNotFoundException;
+import com.shophub.exception.UnauthorizedException;
 import com.shophub.model.Order;
 import com.shophub.model.Product;
 import com.shophub.model.Review;
@@ -84,7 +86,7 @@ public class ReviewController {
         // ✅ FIXED: Get email from authentication (not username)
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UnauthorizedException("Invalid user"));
 
         // Check if user purchased this product
         boolean hasPurchased = orderRepository.findAll().stream()
@@ -106,7 +108,7 @@ public class ReviewController {
         }
 
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
         Review review = new Review();
         review.setProduct(product);
@@ -129,7 +131,7 @@ public class ReviewController {
         // ✅ FIXED: Get email from authentication (not username)
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UnauthorizedException("Invalid user"));
 
         List<Review> reviews = reviewRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
         return ResponseEntity.ok(reviews);
@@ -144,10 +146,10 @@ public class ReviewController {
         // ✅ FIXED: Get email from authentication (not username)
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UnauthorizedException("Invalid user"));
 
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new RuntimeException("Review not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Review not found"));
 
         if (!review.getUser().getId().equals(user.getId())) {
             return ResponseEntity.status(403)
