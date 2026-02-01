@@ -150,14 +150,14 @@ public class JwtTokenProvider {
         return claims.get("role", String.class);
     }
 
-    public String getSessionFromToken(String token) {
+    public Boolean getSessionFromToken(String token) {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
 
-        return claims.get("session", String.class);
+        return claims.get("session", Boolean.class);
     }
 
     public boolean isRefreshToken(String token) {

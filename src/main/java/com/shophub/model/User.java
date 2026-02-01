@@ -42,7 +42,7 @@ public class User implements UserDetails {
     private LocalDateTime accountLockedUntil;
 
     @Column(name = "active_admin_session")
-    private String activeAdminSession;
+    private Boolean activeAdminSession;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

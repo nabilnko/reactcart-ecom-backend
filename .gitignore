@@ -31,5 +31,8 @@ logs/
 .DS_Store
 Thumbs.db
 
+# Archives
+backend-src.zip
+
 # Spring Boot
 HELP.md

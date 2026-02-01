@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -64,7 +63,7 @@ public class AuthService {
         user.setAccountLockedUntil(null);
 
                 if (user.getRole() == Role.ROLE_ADMIN) {
-                        user.setActiveAdminSession(UUID.randomUUID().toString());
+                        user.setActiveAdminSession(true);
                 }
 
         userRepository.saveAndFlush(user);

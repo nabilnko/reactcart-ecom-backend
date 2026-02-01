@@ -16,7 +16,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Objects;
 import java.util.Collections;
 
 @Component
@@ -38,7 +37,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (jwt != null && jwtTokenProvider.validateToken(jwt)) {
                 String email = jwtTokenProvider.getEmailFromToken(jwt);
                 String role = jwtTokenProvider.getRoleFromToken(jwt);
-                String sessionId = jwtTokenProvider.getSessionFromToken(jwt);
+                Boolean sessionActive = jwtTokenProvider.getSessionFromToken(jwt);
 
                 if (email == null || role == null) {
                     throw new IllegalArgumentException("Missing required JWT claims");
@@ -50,8 +49,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     User user = userRepository.findByEmail(email)
                             .orElseThrow(() -> new UnauthorizedException("Admin not found"));
 
-                    if (sessionId == null || sessionId.isBlank() ||
-                            !Objects.equals(user.getActiveAdminSession(), sessionId)) {
+                        if (!Boolean.TRUE.equals(sessionActive) ||
+                            !Boolean.TRUE.equals(user.getActiveAdminSession())) {
                         throw new UnauthorizedException("Admin session invalidated");
                     }
                 }
