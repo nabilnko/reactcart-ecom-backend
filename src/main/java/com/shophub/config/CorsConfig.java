@@ -6,7 +6,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -16,20 +15,18 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // ✅ Allow credentials (cookies, authorization headers)
-        config.setAllowCredentials(true);
-
-        // ✅ Allow frontend origins (production)
         config.setAllowedOrigins(List.of(
-            "https://kiaralifestyle.com",
-            "https://www.kiaralifestyle.com"
+                "http://localhost:3000",
+                "https://kiaralifestyle.com",
+                "https://www.kiaralifestyle.com"
         ));
 
-        // ✅ Allow all headers
-        config.setAllowedHeaders(List.of("*"));
+        config.setAllowedMethods(List.of(
+                "GET", "POST", "PUT", "DELETE", "OPTIONS"
+        ));
 
-        // ✅ Allow all HTTP methods
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
