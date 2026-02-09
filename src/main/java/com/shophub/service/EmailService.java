@@ -1,37 +1,61 @@
 package com.shophub.service;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    @Value("${BREVO_API_KEY}")
+    private String apiKey;
 
-    @Value("${spring.mail.from}")
-    private String from;
+    @Value("${MAIL_FROM}")
+    private String mailFrom;
 
-    public EmailService(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
-    }
+    @Value("${MAIL_FROM_NAME}")
+    private String mailFromName;
 
-    public void sendEmail(String to, String subject, String body) {
+    private static final String BREVO_URL = "https://api.brevo.com/v3/smtp/email";
+
+    public void sendEmail(String to, String subject, String htmlContent) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            RestTemplate restTemplate = new RestTemplate();
 
-            helper.setFrom(from);
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(body, true); // HTML enabled
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("sender", Map.of(
+                    "email", mailFrom,
+                    "name", mailFromName
+            ));
+            payload.put("to", new Object[]{
+                    Map.of("email", to)
+            });
+            payload.put("subject", subject);
+            payload.put("htmlContent", htmlContent);
 
-            mailSender.send(message);
-        } catch (MessagingException e) {
-            throw new RuntimeException("Failed to send email", e);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("api-key", apiKey);
+
+            HttpEntity<String> request = new HttpEntity<>(
+                    new ObjectMapper().writeValueAsString(payload),
+                    headers
+            );
+
+            ResponseEntity<String> response =
+                    restTemplate.postForEntity(BREVO_URL, request, String.class);
+
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new RuntimeException("Brevo email failed: " + response.getBody());
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Email sending failed", e);
         }
     }
 }
