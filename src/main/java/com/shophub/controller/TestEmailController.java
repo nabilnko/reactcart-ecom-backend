@@ -16,9 +16,9 @@ public class TestEmailController {
     @GetMapping("/api/test/email")
     public String testEmail() {
         emailService.sendEmail(
-                "your_personal_email@gmail.com",
-                "Kiara Lifestyle  Email Test ",
-                "<h2>Email system is LIVE </h2><p>This email was sent from production.</p>"
+                "nabilnko11@gmail.com",
+                "Kiara Lifestyle – Email Test ✅",
+                "<h2>Email system is LIVE 🎉</h2><p>This email was sent from production.</p>"
         );
         return "Email sent successfully";
     }
