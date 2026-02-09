@@ -34,8 +34,7 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/auth/**",
                     "/api/products/**",
-                    "/api/checkout/guest",
-                    "/api/test/**" // TEMPORARY
+                    "/api/checkout/guest"
                 ).permitAll()
 
                 // 🛒 CUSTOMER + ADMIN
