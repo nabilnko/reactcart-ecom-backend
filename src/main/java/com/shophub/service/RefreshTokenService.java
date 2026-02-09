@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +24,7 @@ public class RefreshTokenService {
 
         refreshToken.setUser(user);
         refreshToken.setToken(token);
-        refreshToken.setExpiryDate(LocalDateTime.now().plusSeconds(validitySeconds));
+        refreshToken.setExpiryDate(Instant.now().plusSeconds(validitySeconds));
         refreshToken.setRevoked(false);
 
         return refreshTokenRepository.save(refreshToken);
@@ -36,7 +36,7 @@ public class RefreshTokenService {
                 .findByTokenAndRevokedFalse(token)
                 .orElseThrow(() -> new UnauthorizedException("Invalid refresh token"));
 
-        if (refreshToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+        if (refreshToken.getExpiryDate().isBefore(Instant.now())) {
             throw new UnauthorizedException("Refresh token expired");
         }
 
