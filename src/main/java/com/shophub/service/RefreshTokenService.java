@@ -18,10 +18,10 @@ public class RefreshTokenService {
 
     @Transactional
     public RefreshToken createRefreshToken(User user, String token, long validitySeconds) {
-        // Single-token policy: delete old refresh token
-        refreshTokenRepository.deleteByUser(user);
+        RefreshToken refreshToken = refreshTokenRepository
+                .findByUser(user)
+                .orElse(new RefreshToken());
 
-        RefreshToken refreshToken = new RefreshToken();
         refreshToken.setUser(user);
         refreshToken.setToken(token);
         refreshToken.setExpiryDate(LocalDateTime.now().plusSeconds(validitySeconds));
