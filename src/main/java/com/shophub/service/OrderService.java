@@ -114,7 +114,8 @@ public class OrderService {
                 customerName = (firstName + " " + lastName).trim();
             }
 
-            emailService.sendOrderConfirmationEmail(dbOrder, customerName);
+            emailService.sendOrderInvoiceEmail(dbOrder, customerName);
+            emailService.sendAdminNewOrderNotification(dbOrder, customerName);
         } catch (Exception e) {
             log.error("Order email failed but order created", e);
         }

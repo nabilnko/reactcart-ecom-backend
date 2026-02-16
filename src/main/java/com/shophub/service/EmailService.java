@@ -8,6 +8,8 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,6 +84,197 @@ public class EmailService {
             """.formatted(firstName);
 
         sendEmail(toEmail, subject, htmlContent);
+    }
+
+    public void sendOrderInvoiceEmail(
+            String to,
+            String customerName,
+            Long orderId,
+            List<OrderItem> items,
+            Double subtotal,
+            Double shippingFee,
+            Double totalAmount,
+            String address
+    ) {
+
+        String subject = "Order Confirmation #" + orderId + " | Kiara Lifestyle";
+
+        String safeCustomerName = esc((customerName == null || customerName.isBlank()) ? "there" : customerName);
+        String safeAddress = esc(blankAsDash(address));
+        double safeSubtotal = subtotal == null ? 0.0 : subtotal;
+        double safeShippingFee = shippingFee == null ? 0.0 : shippingFee;
+        double safeTotalAmount = totalAmount == null ? 0.0 : totalAmount;
+
+        StringBuilder itemsHtml = new StringBuilder();
+        if (items != null) {
+            for (OrderItem item : items) {
+                if (item == null) continue;
+
+                String productName = item.getProductName();
+                if ((productName == null || productName.isBlank()) && item.getProduct() != null) {
+                    productName = item.getProduct().getName();
+                }
+                String safeProductName = esc(productName == null ? "Item" : productName);
+
+                int qty = item.getQuantity() == null ? 0 : item.getQuantity();
+                double unitPrice = item.getPrice() == null ? 0.0 : item.getPrice();
+                double lineTotal = unitPrice * qty;
+
+                itemsHtml.append("""
+                    <tr>
+                        <td style=\"padding:8px;border:1px solid #ddd;\">%s</td>
+                        <td style=\"padding:8px;border:1px solid #ddd;text-align:center;\">%d</td>
+                        <td style=\"padding:8px;border:1px solid #ddd;text-align:right;\">৳ %s</td>
+                        <td style=\"padding:8px;border:1px solid #ddd;text-align:right;\">৳ %s</td>
+                    </tr>
+                """.formatted(
+                        safeProductName,
+                        qty,
+                        money(unitPrice),
+                        money(lineTotal)
+                ));
+            }
+        }
+
+        String htmlContent = """
+            <div style=\"font-family:Arial,sans-serif;max-width:700px;margin:auto;\">
+                <h2 style=\"color:#111;\">Thank you for your order, %s! 🎉</h2>
+
+                <p>Your order <strong>#%d</strong> has been successfully placed.</p>
+
+                <h3>Order Details</h3>
+
+                <table style=\"width:100%%;border-collapse:collapse;\">
+                    <thead>
+                        <tr style=\"background:#f8f8f8;\">
+                            <th style=\"padding:8px;border:1px solid #ddd;text-align:left;\">Product</th>
+                            <th style=\"padding:8px;border:1px solid #ddd;\">Qty</th>
+                            <th style=\"padding:8px;border:1px solid #ddd;\">Unit</th>
+                            <th style=\"padding:8px;border:1px solid #ddd;\">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        %s
+                    </tbody>
+                </table>
+
+                <br>
+
+                <p><strong>Subtotal:</strong> ৳ %s</p>
+                <p><strong>Shipping:</strong> ৳ %s</p>
+                <p style=\"font-size:18px;\"><strong>Total:</strong> ৳ %s</p>
+
+                <hr>
+
+                <h4>Shipping Address</h4>
+                <p>%s</p>
+
+                <br>
+                <p>We’ll notify you when your order ships 🚚</p>
+
+                <hr>
+                <p style=\"font-size:12px;color:gray;\">
+                    Kiara Lifestyle<br>
+                    support@kiaralifestyle.com
+                </p>
+            </div>
+            """.formatted(
+                safeCustomerName,
+                orderId,
+                itemsHtml.toString(),
+                money(safeSubtotal),
+                money(safeShippingFee),
+                money(safeTotalAmount),
+                safeAddress
+        );
+
+        sendEmail(to, subject, htmlContent);
+    }
+
+    public void sendAdminNewOrderNotification(
+            Long orderId,
+            String customerName,
+            String customerEmail,
+            Double totalAmount,
+            String address
+    ) {
+
+        String subject = "🚨 New Order Received #" + orderId;
+
+        String safeCustomerName = esc(blankAsDash(customerName));
+        String safeCustomerEmail = esc(blankAsDash(customerEmail));
+        String safeAddress = esc(blankAsDash(address));
+        double safeTotalAmount = totalAmount == null ? 0.0 : totalAmount;
+
+        String htmlContent = """
+            <div style=\"font-family:Arial,sans-serif;\">
+                <h2>New Order Alert 🚨</h2>
+
+                <p><strong>Order ID:</strong> #%d</p>
+                <p><strong>Customer:</strong> %s</p>
+                <p><strong>Email:</strong> %s</p>
+                <p><strong>Total:</strong> ৳ %s</p>
+
+                <h4>Shipping Address:</h4>
+                <p>%s</p>
+
+                <hr>
+                <p>Check admin panel for full details.</p>
+            </div>
+            """.formatted(
+                orderId,
+                safeCustomerName,
+                safeCustomerEmail,
+                money(safeTotalAmount),
+                safeAddress
+        );
+
+        sendEmail("support@kiaralifestyle.com", subject, htmlContent);
+    }
+
+    public void sendOrderInvoiceEmail(Order order, String customerName) {
+        if (order == null) {
+            throw new IllegalArgumentException("order must not be null");
+        }
+
+        double subtotal = 0.0;
+        if (order.getItems() != null) {
+            for (OrderItem item : order.getItems()) {
+                if (item == null) continue;
+                int qty = item.getQuantity() == null ? 0 : item.getQuantity();
+                double unitPrice = item.getPrice() == null ? 0.0 : item.getPrice();
+                subtotal += unitPrice * qty;
+            }
+        }
+
+        String address = formatAddress(order.getAddress(), order.getDistrict());
+
+        sendOrderInvoiceEmail(
+                order.getEmail(),
+                customerName,
+                order.getId(),
+                order.getItems(),
+                subtotal,
+                order.getDeliveryCharge(),
+                order.getTotal(),
+                address
+        );
+    }
+
+    public void sendAdminNewOrderNotification(Order order, String customerName) {
+        if (order == null) {
+            throw new IllegalArgumentException("order must not be null");
+        }
+
+        String address = formatAddress(order.getAddress(), order.getDistrict());
+
+        sendAdminNewOrderNotification(
+                order.getId(),
+                customerName,
+                order.getEmail(),
+                order.getTotal(),
+                address
+        );
     }
 
     public void sendOrderConfirmationEmail(Order order, String customerName) {
@@ -203,6 +396,21 @@ public class EmailService {
 
     private static String money(double amount) {
         return String.format("%.2f", amount);
+    }
+
+    private static String formatAddress(String address, String district) {
+        String a = address == null ? "" : address.trim();
+        String d = district == null ? "" : district.trim();
+        if (a.isEmpty() && d.isEmpty()) return "-";
+        if (d.isEmpty()) return a;
+        if (a.isEmpty()) return d;
+        return a + ", " + d;
+    }
+
+    @SuppressWarnings("unused")
+    private static String formatOrderDate(LocalDateTime createdAt) {
+        if (createdAt == null) return "-";
+        return createdAt.format(DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm"));
     }
 
     private static String blankAsDash(String value) {
