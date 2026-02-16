@@ -237,28 +237,105 @@ public class EmailService {
             throw new IllegalArgumentException("order must not be null");
         }
 
+        String subject = "Order Confirmation #" + order.getId() + " | Kiara Lifestyle";
+
+        String safeCustomerName = esc((customerName == null || customerName.isBlank()) ? "there" : customerName);
+        String safeOrderDate = esc(formatOrderDate(order.getCreatedAt()));
+        String safeAddress = esc(blankAsDash(formatAddress(order.getAddress(), order.getDistrict())));
+
+        List<OrderItem> items = order.getItems();
         double subtotal = 0.0;
-        if (order.getItems() != null) {
-            for (OrderItem item : order.getItems()) {
+        StringBuilder itemsHtml = new StringBuilder();
+
+        if (items != null) {
+            for (OrderItem item : items) {
                 if (item == null) continue;
+
+                String productName = item.getProductName();
+                if ((productName == null || productName.isBlank()) && item.getProduct() != null) {
+                    productName = item.getProduct().getName();
+                }
+                String safeProductName = esc(productName == null ? "Item" : productName);
+
                 int qty = item.getQuantity() == null ? 0 : item.getQuantity();
                 double unitPrice = item.getPrice() == null ? 0.0 : item.getPrice();
-                subtotal += unitPrice * qty;
+                double lineTotal = unitPrice * qty;
+                subtotal += lineTotal;
+
+                itemsHtml.append("""
+                    <tr>
+                        <td style=\"padding:8px;border:1px solid #ddd;\">%s</td>
+                        <td style=\"padding:8px;border:1px solid #ddd;text-align:center;\">%d</td>
+                        <td style=\"padding:8px;border:1px solid #ddd;text-align:right;\">৳ %s</td>
+                        <td style=\"padding:8px;border:1px solid #ddd;text-align:right;\">৳ %s</td>
+                    </tr>
+                """.formatted(
+                        safeProductName,
+                        qty,
+                        money(unitPrice),
+                        money(lineTotal)
+                ));
             }
         }
 
-        String address = formatAddress(order.getAddress(), order.getDistrict());
+        double shippingFee = order.getDeliveryCharge() == null ? 0.0 : order.getDeliveryCharge();
+        double totalAmount = order.getTotal() == null ? 0.0 : order.getTotal();
 
-        sendOrderInvoiceEmail(
-                order.getEmail(),
-                customerName,
+        String htmlContent = """
+            <div style=\"font-family:Arial,sans-serif;max-width:700px;margin:auto;\">
+                <h2 style=\"color:#111;\">Thank you for your order, %s! 🎉</h2>
+
+                <p>Your order <strong>#%d</strong> has been successfully placed.</p>
+                <p><strong>Order Date:</strong> %s</p>
+
+                <h3>Order Details</h3>
+
+                <table style=\"width:100%%;border-collapse:collapse;\">
+                    <thead>
+                        <tr style=\"background:#f8f8f8;\">
+                            <th style=\"padding:8px;border:1px solid #ddd;text-align:left;\">Product</th>
+                            <th style=\"padding:8px;border:1px solid #ddd;\">Qty</th>
+                            <th style=\"padding:8px;border:1px solid #ddd;\">Unit</th>
+                            <th style=\"padding:8px;border:1px solid #ddd;\">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        %s
+                    </tbody>
+                </table>
+
+                <br>
+
+                <p><strong>Subtotal:</strong> ৳ %s</p>
+                <p><strong>Shipping:</strong> ৳ %s</p>
+                <p style=\"font-size:18px;\"><strong>Total:</strong> ৳ %s</p>
+
+                <hr>
+
+                <h4>Shipping Address</h4>
+                <p>%s</p>
+
+                <br>
+                <p>We’ll notify you when your order ships 🚚</p>
+
+                <hr>
+                <p style=\"font-size:12px;color:gray;\">
+                    Kiara Lifestyle<br>
+                    support@kiaralifestyle.com
+                </p>
+            </div>
+            """.formatted(
+                safeCustomerName,
                 order.getId(),
-                order.getItems(),
-                subtotal,
-                order.getDeliveryCharge(),
-                order.getTotal(),
-                address
+                safeOrderDate,
+                itemsHtml.toString(),
+                money(subtotal),
+                money(shippingFee),
+                money(totalAmount),
+                safeAddress
         );
+
+        sendEmail(order.getEmail(), subject, htmlContent);
     }
 
     public void sendAdminNewOrderNotification(Order order, String customerName) {
@@ -407,7 +484,6 @@ public class EmailService {
         return a + ", " + d;
     }
 
-    @SuppressWarnings("unused")
     private static String formatOrderDate(LocalDateTime createdAt) {
         if (createdAt == null) return "-";
         return createdAt.format(DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm"));
