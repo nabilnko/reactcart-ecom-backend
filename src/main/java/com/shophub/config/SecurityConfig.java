@@ -30,6 +30,9 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
 
+                // 🧪 TEMPORARY (remove after generating password hash)
+                .requestMatchers("/generate-admin-password").permitAll()
+
                 // 🔓 PUBLIC (Guest allowed)
                 .requestMatchers(
                     "/api/auth/**",
