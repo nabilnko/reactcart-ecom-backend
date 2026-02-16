@@ -83,8 +83,13 @@ public class ReviewController {
             @RequestBody ReviewRequest request,
             Authentication authentication) {
 
-        // ✅ FIXED: Get email from authentication (not username)
-        String email = authentication.getName();
+                String email;
+                Object principal = authentication.getPrincipal();
+                if (principal instanceof User) {
+                        email = ((User) principal).getEmail();
+                } else {
+                        email = authentication.getName();
+                }
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UnauthorizedException("Invalid user"));
 
@@ -128,8 +133,13 @@ public class ReviewController {
     // ✅ Get user's reviews
     @GetMapping("/my-reviews")
     public ResponseEntity<List<Review>> getMyReviews(Authentication authentication) {
-        // ✅ FIXED: Get email from authentication (not username)
-        String email = authentication.getName();
+                String email;
+                Object principal = authentication.getPrincipal();
+                if (principal instanceof User) {
+                        email = ((User) principal).getEmail();
+                } else {
+                        email = authentication.getName();
+                }
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UnauthorizedException("Invalid user"));
 
@@ -143,8 +153,13 @@ public class ReviewController {
             @PathVariable Long reviewId,
             Authentication authentication) {
 
-        // ✅ FIXED: Get email from authentication (not username)
-        String email = authentication.getName();
+        String email;
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof User) {
+            email = ((User) principal).getEmail();
+        } else {
+            email = authentication.getName();
+        }
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UnauthorizedException("Invalid user"));
 

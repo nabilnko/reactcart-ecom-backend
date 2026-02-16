@@ -27,7 +27,7 @@ public class AdminController {
     private final UserService userService;
 
     @GetMapping("/test")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<String> test(HttpServletRequest request) {
 
         adminAuditService.log(
@@ -41,7 +41,7 @@ public class AdminController {
     }
 
     @PostMapping("/confirm")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Long> confirmAction(
             @RequestParam String action,
             Principal principal,
@@ -60,7 +60,7 @@ public class AdminController {
     }
 
     @DeleteMapping("/users/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<?> deleteUser(
             @PathVariable Long id,
             @RequestParam Long tokenId,

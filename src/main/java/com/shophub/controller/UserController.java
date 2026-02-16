@@ -29,7 +29,13 @@ public class UserController {
 
     @GetMapping("/profile")
     public ResponseEntity<UserProfile> getProfile(Authentication authentication) {
-        String email = authentication.getName();
+        String email;
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof User) {
+            email = ((User) principal).getEmail();
+        } else {
+            email = authentication.getName();
+        }
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -45,7 +51,7 @@ public class UserController {
     }
 
     @GetMapping("/count")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Long> getUserCount() {
         // Count only users with CUSTOMER role (exclude admins)
         long count = userRepository.countByRole(Role.ROLE_CUSTOMER);
@@ -54,7 +60,7 @@ public class UserController {
 
     // NEW: Get list of all customers
     @GetMapping("/customers")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<List<User>> getCustomers() {
         List<User> customers = userRepository.findByRole(Role.ROLE_CUSTOMER);
         return ResponseEntity.ok(customers);
@@ -63,7 +69,13 @@ public class UserController {
     // ✅ FIXED: Update user profile (WITHOUT phone)
     @PutMapping("/profile")
     public ResponseEntity<?> updateProfile(@RequestBody Map<String, String> updates, Authentication authentication) {
-        String email = authentication.getName();
+        String email;
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof User) {
+            email = ((User) principal).getEmail();
+        } else {
+            email = authentication.getName();
+        }
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));

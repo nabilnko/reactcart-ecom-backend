@@ -43,23 +43,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     throw new IllegalArgumentException("Missing required JWT claims");
                 }
 
-                SimpleGrantedAuthority authority = new SimpleGrantedAuthority(role);
+                User user = userRepository.findByEmail(email)
+                        .orElseThrow(() -> new UnauthorizedException("User not found"));
 
-                if (authority.equals(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
-                    User user = userRepository.findByEmail(email)
-                            .orElseThrow(() -> new UnauthorizedException("Admin not found"));
-
-                        if (!Boolean.TRUE.equals(sessionActive) ||
+                if ("ROLE_ADMIN".equals(role)) {
+                    if (!Boolean.TRUE.equals(sessionActive) ||
                             !Boolean.TRUE.equals(user.getActiveAdminSession())) {
                         throw new UnauthorizedException("Admin session invalidated");
                     }
                 }
 
-                Authentication authentication = new UsernamePasswordAuthenticationToken(
-                        email,
-                        null,
-                        Collections.singletonList(authority)
-                );
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                user,
+                                null,
+                                Collections.singletonList(new SimpleGrantedAuthority(role))
+                        );
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }

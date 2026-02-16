@@ -35,8 +35,13 @@ public class OrderController {
             Authentication authentication) {
         User user = null;
         if (authentication != null && authentication.isAuthenticated()) {
-            String email = authentication.getName();
-            user = userService.getUserByEmail(email);
+            Object principal = authentication.getPrincipal();
+            if (principal instanceof User) {
+                user = (User) principal;
+            } else {
+                String email = authentication.getName();
+                user = userService.getUserByEmail(email);
+            }
         }
 
         Order order = orderService.createOrder(request, user);
@@ -50,7 +55,13 @@ public class OrderController {
             throw new UnauthorizedException("Please log in to view orders");
         }
 
-        String email = authentication.getName();
+        String email;
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof User) {
+            email = ((User) principal).getEmail();
+        } else {
+            email = authentication.getName();
+        }
         List<Order> orders = orderRepository.findByEmailOrderByCreatedAtDesc(email);
         return ResponseEntity.ok(orders);
     }
