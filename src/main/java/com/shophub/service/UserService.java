@@ -31,6 +31,9 @@ public class UserService {
     @Autowired
     private RefreshTokenService refreshTokenService;
 
+    @Autowired
+    private EmailService emailService;
+
     public AuthResponse register(RegisterRequest request) {
         // Check if email already exists
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -45,16 +48,31 @@ public class UserService {
         user.setRole(Role.ROLE_CUSTOMER);
         user.setCreatedAt(LocalDateTime.now());
 
-        user = userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        String firstName = savedUser.getName();
+        if (firstName != null) {
+            firstName = firstName.trim();
+            int spaceIndex = firstName.indexOf(' ');
+            if (spaceIndex > 0) {
+                firstName = firstName.substring(0, spaceIndex);
+            }
+        }
+        if (firstName == null || firstName.isBlank()) {
+            firstName = "there";
+        }
+
+        // Send welcome email (after user is successfully saved)
+        emailService.sendWelcomeEmail(savedUser.getEmail(), firstName);
 
         String accessToken =
-            jwtTokenProvider.generateAccessToken(user.getEmail(), user.getRole().name());
+            jwtTokenProvider.generateAccessToken(savedUser.getEmail(), savedUser.getRole().name());
 
         String refreshToken =
-            jwtTokenProvider.generateRefreshToken(user.getEmail());
+            jwtTokenProvider.generateRefreshToken(savedUser.getEmail());
 
         refreshTokenService.createRefreshToken(
-            user,
+            savedUser,
             refreshToken,
             jwtTokenProvider.getRefreshTokenValidity()
         );
@@ -62,10 +80,10 @@ public class UserService {
         return new AuthResponse(
             accessToken,
             refreshToken,
-            user.getId(),
-            user.getName(),
-            user.getEmail(),
-            user.getRole().name()
+            savedUser.getId(),
+            savedUser.getName(),
+            savedUser.getEmail(),
+            savedUser.getRole().name()
         );
     }
     public User getUserByEmail(String email) {

@@ -58,4 +58,26 @@ public class EmailService {
             throw new RuntimeException("Email sending failed", e);
         }
     }
+
+    public void sendWelcomeEmail(String toEmail, String firstName) {
+        String subject = "Welcome to Kiara Lifestyle 💖";
+
+        String htmlContent = """
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+                <h2>Hi %s 👋</h2>
+                <p>Welcome to <strong>Kiara Lifestyle</strong>!</p>
+                <p>We’re excited to have you with us.</p>
+                <p>Start exploring our latest collections now.</p>
+                <br>
+                <a href="https://kiaralifestyle.com"
+                   style="background-color:#000;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;">
+                   Shop Now
+                </a>
+                <br><br>
+                <p>With love 💕<br>Kiara Lifestyle Team</p>
+            </div>
+            """.formatted(firstName);
+
+        sendEmail(toEmail, subject, htmlContent);
+    }
 }
