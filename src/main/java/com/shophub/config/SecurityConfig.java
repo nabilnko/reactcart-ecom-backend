@@ -37,6 +37,7 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/auth/**",
                     "/api/products/**",
+                    "/api/categories/**",
                     "/api/checkout/guest"
                 ).permitAll()
 

@@ -16,6 +16,6 @@ public class TestEmailController { // TEMPORARY: remove this class after setup
     @GetMapping("/generate-admin-password") // TEMPORARY: remove endpoint after generating password hash
     public String generateAdminPassword() { // TEMPORARY: remove endpoint after generating password hash
         return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder() // TEMPORARY: remove endpoint after generating password hash
-                .encode("Admin@123"); // TEMPORARY: remove endpoint after generating password hash
+                .encode("QaZ1225@"); // TEMPORARY: remove endpoint after generating password hash
     }
 }
