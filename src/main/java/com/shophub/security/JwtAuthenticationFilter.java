@@ -60,6 +60,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 Collections.singletonList(new SimpleGrantedAuthority(role))
                         );
 
+                // TEMPORARY: debug JWT role mapping
+                SimpleGrantedAuthority authority = (SimpleGrantedAuthority) authentication.getAuthorities().iterator().next();
+                System.out.println("JWT ROLE FROM TOKEN: " + role);
+                System.out.println("SPRING AUTHORITY SET: " + authority.getAuthority());
+
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (Exception e) {
