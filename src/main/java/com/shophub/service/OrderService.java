@@ -102,6 +102,11 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
 
         try {
+            Order dbOrder = orderRepository.findById(savedOrder.getId()).orElse(savedOrder);
+            if (dbOrder.getItems() != null) {
+                dbOrder.getItems().size();
+            }
+
             String customerName = savedOrder.getUserName();
             if (customerName == null || customerName.isBlank()) {
                 String firstName = savedOrder.getFirstName() == null ? "" : savedOrder.getFirstName().trim();
@@ -109,12 +114,7 @@ public class OrderService {
                 customerName = (firstName + " " + lastName).trim();
             }
 
-            emailService.sendOrderConfirmationEmail(
-                    savedOrder.getEmail(),
-                    customerName,
-                    savedOrder.getId(),
-                    savedOrder.getTotal()
-            );
+            emailService.sendOrderConfirmationEmail(dbOrder, customerName);
         } catch (Exception e) {
             log.error("Order email failed but order created", e);
         }
