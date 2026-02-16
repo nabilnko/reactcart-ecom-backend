@@ -10,6 +10,8 @@ import com.shophub.model.Product;
 import com.shophub.model.User;
 import com.shophub.repository.OrderRepository;
 import com.shophub.repository.ProductRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,11 +21,16 @@ import java.util.List;
 @Service
 public class OrderService {
 
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
+
     @Autowired
     private OrderRepository orderRepository;
 
     @Autowired
     private ProductRepository productRepository;
+
+    @Autowired
+    private EmailService emailService;
 
     @Transactional
     public Order createOrder(OrderRequest request, User user) {
@@ -92,7 +99,27 @@ public class OrderService {
         order.setItems(orderItems);
         order.setTotal(total + (request.getDeliveryCharge() != null ? request.getDeliveryCharge() : 0));
 
-        return orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
+
+        try {
+            String customerName = savedOrder.getUserName();
+            if (customerName == null || customerName.isBlank()) {
+                String firstName = savedOrder.getFirstName() == null ? "" : savedOrder.getFirstName().trim();
+                String lastName = savedOrder.getLastName() == null ? "" : savedOrder.getLastName().trim();
+                customerName = (firstName + " " + lastName).trim();
+            }
+
+            emailService.sendOrderConfirmationEmail(
+                    savedOrder.getEmail(),
+                    customerName,
+                    savedOrder.getId(),
+                    savedOrder.getTotal()
+            );
+        } catch (Exception e) {
+            log.error("Order email failed but order created", e);
+        }
+
+        return savedOrder;
     }
 
     @Transactional

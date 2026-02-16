@@ -80,4 +80,41 @@ public class EmailService {
 
         sendEmail(toEmail, subject, htmlContent);
     }
+
+    public void sendOrderConfirmationEmail(
+            String to,
+            String customerName,
+            Long orderId,
+            Double totalAmount
+    ) {
+
+        String subject = "Your Order #" + orderId + " is Confirmed 🎉";
+
+        String safeCustomerName = (customerName == null || customerName.isBlank()) ? "there" : customerName;
+        double safeTotalAmount = totalAmount == null ? 0.0 : totalAmount;
+
+        String htmlContent = """
+            <div style=\"font-family: Arial, sans-serif;\">
+                <h2>Hi %s 👋</h2>
+                <p>Thank you for shopping with <strong>Kiara Lifestyle</strong>.</p>
+
+                <h3>Order Details:</h3>
+                <p><strong>Order ID:</strong> #%d</p>
+                <p><strong>Total Amount:</strong> ৳ %.2f</p>
+
+                <p>Your order is now being processed.</p>
+
+                <br>
+                <p>The delivery wil be done within 3-5 days 🚚</p>
+
+                <hr>
+                <p style=\"font-size:12px;color:gray;\">
+                    Kiara Lifestyle<br>
+                    support@kiaralifestyle.com
+                </p>
+            </div>
+            """.formatted(safeCustomerName, orderId, safeTotalAmount);
+
+        sendEmail(to, subject, htmlContent);
+    }
 }
