@@ -211,31 +211,6 @@ public class ProductService {
             keptImages = new ArrayList<>(existingAdditionalImages);
         }
 
-        Set<String> keptSet = new HashSet<>();
-        for (String url : keptImages) {
-            if (url != null && !url.isBlank()) {
-                keptSet.add(url);
-            }
-        }
-
-        for (int i = 0; i < alignedSize; i++) {
-            String url = currentImages.get(i);
-            String publicId = currentPublicIds.get(i);
-            if (url == null || url.isBlank()) {
-                continue;
-            }
-            if (publicId == null || publicId.isBlank()) {
-                continue;
-            }
-            if (!keptSet.contains(url)) {
-                try {
-                    cloudinaryService.deleteFile(publicId);
-                } catch (IOException e) {
-                    throw new BadRequestException("Failed to delete removed additional product images");
-                }
-            }
-        }
-
         List<String> updatedAdditionalImages = new ArrayList<>();
         List<String> updatedAdditionalPublicIds = new ArrayList<>();
         for (String url : keptImages) {
@@ -271,6 +246,23 @@ public class ProductService {
                 }
                 updatedAdditionalImages.add(url);
                 updatedAdditionalPublicIds.add(null);
+            }
+        }
+
+        // Delete removed additional images (Cloudinary public IDs no longer referenced)
+        if (product.getAdditionalImagePublicIds() != null) {
+            for (String oldPublicId : product.getAdditionalImagePublicIds()) {
+                if (oldPublicId == null || oldPublicId.isBlank()) {
+                    continue;
+                }
+
+                if (!updatedAdditionalPublicIds.contains(oldPublicId)) {
+                    try {
+                        cloudinaryService.deleteFile(oldPublicId);
+                    } catch (IOException e) {
+                        throw new BadRequestException("Failed to delete removed additional image");
+                    }
+                }
             }
         }
 
