@@ -43,6 +43,8 @@ public class Product {
     @Column(length = 500)
     private String image;
 
+    private String imagePublicId;
+
     // Additional Images
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
@@ -52,6 +54,14 @@ public class Product {
     @Column(name = "image_url", length = 500)
     @JsonProperty("additionalImages")
     private List<String> additionalImages = new ArrayList<>();
+
+        @ElementCollection(fetch = FetchType.EAGER)
+        @CollectionTable(
+            name = "product_image_public_ids",
+            joinColumns = @JoinColumn(name = "product_id")
+        )
+        @Column(name = "public_id", length = 255)
+        private List<String> additionalImagePublicIds = new ArrayList<>();
 
     // Helper method
     @Transient
