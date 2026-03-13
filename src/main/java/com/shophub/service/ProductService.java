@@ -187,8 +187,12 @@ public class ProductService {
             List<String> additionalImageUrls,
             List<String> existingAdditionalImages
     ) {
-        List<String> currentImages = product.getAdditionalImages() != null ? product.getAdditionalImages() : List.of();
-        List<String> currentPublicIds = product.getAdditionalImagePublicIds() != null ? product.getAdditionalImagePublicIds() : List.of();
+        List<String> currentImages = product.getAdditionalImages() != null
+            ? new ArrayList<>(product.getAdditionalImages())
+            : new ArrayList<>();
+        List<String> currentPublicIds = product.getAdditionalImagePublicIds() != null
+            ? new ArrayList<>(product.getAdditionalImagePublicIds())
+            : new ArrayList<>();
 
         Map<String, String> urlToPublicId = new HashMap<>();
         int alignedSize = Math.min(currentImages.size(), currentPublicIds.size());
