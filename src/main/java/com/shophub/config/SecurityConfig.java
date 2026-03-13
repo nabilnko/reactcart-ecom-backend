@@ -43,7 +43,11 @@ public class SecurityConfig {
                     "/api/checkout/guest"
                 ).permitAll()
 
+                // Categories
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/categories/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasRole("ADMIN")
 
                 // 🛒 CUSTOMER + ADMIN
                 .requestMatchers("/api/orders/**")
