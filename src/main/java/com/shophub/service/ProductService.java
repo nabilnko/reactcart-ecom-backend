@@ -29,6 +29,10 @@ public class ProductService {
     }
 
     public List<Product> getAllProducts() {
+        return productRepository.findByActiveTrue();
+    }
+
+    public List<Product> getAllProductsAdmin() {
         return productRepository.findAll();
     }
 
@@ -111,28 +115,11 @@ public class ProductService {
     public void deleteProduct(Long id) {
         Product product = getProductById(id);
 
-        if (product.getImagePublicId() != null && !product.getImagePublicId().isBlank()) {
-            try {
-                cloudinaryService.deleteFile(product.getImagePublicId());
-            } catch (IOException e) {
-                throw new BadRequestException("Failed to delete product main image");
-            }
-        }
+        product.setActive(false);
+        product.setInStock(false);
+        product.setStock(0);
 
-        if (product.getAdditionalImagePublicIds() != null) {
-            for (String publicId : product.getAdditionalImagePublicIds()) {
-                if (publicId == null || publicId.isBlank()) {
-                    continue;
-                }
-                try {
-                    cloudinaryService.deleteFile(publicId);
-                } catch (IOException e) {
-                    throw new BadRequestException("Failed to delete product additional images");
-                }
-            }
-        }
-
-        productRepository.delete(product);
+        productRepository.save(product);
     }
 
     public List<Product> getSaleProducts() {

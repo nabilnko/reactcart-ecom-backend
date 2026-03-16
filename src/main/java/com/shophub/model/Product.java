@@ -40,6 +40,9 @@ public class Product {
     private Double rating = 4.5;
     private Boolean inStock = true;
 
+    @Column(nullable = false)
+    private boolean active = true;
+
     @Column(length = 500)
     private String image;
 

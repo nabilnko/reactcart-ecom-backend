@@ -115,6 +115,6 @@ public class ProductController {
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
-        return ResponseEntity.ok("Product deleted successfully");
+        return ResponseEntity.ok("Product hidden successfully");
     }
 }

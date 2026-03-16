@@ -11,6 +11,8 @@ import java.util.List;
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
+    List<Product> findByActiveTrue();
+
     // Existing methods - keep these
     List<Product> findByCategory(String category);
     List<Product> findByNameContainingIgnoreCase(String name);

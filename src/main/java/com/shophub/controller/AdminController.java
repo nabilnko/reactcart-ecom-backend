@@ -1,7 +1,9 @@
 package com.shophub.controller;
 
+import com.shophub.model.Product;
 import com.shophub.service.AdminAuditService;
 import com.shophub.service.AdminActionTokenService;
+import com.shophub.service.ProductService;
 import com.shophub.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -25,6 +28,7 @@ public class AdminController {
     private final AdminAuditService adminAuditService;
     private final AdminActionTokenService adminActionTokenService;
     private final UserService userService;
+    private final ProductService productService;
 
     @GetMapping("/test")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
@@ -57,6 +61,12 @@ public class AdminController {
         );
 
         return ResponseEntity.ok(token.getId());
+    }
+
+    @GetMapping("/products")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<List<Product>> getAllProductsForAdmin() {
+        return ResponseEntity.ok(productService.getAllProductsAdmin());
     }
 
     @DeleteMapping("/users/{id}")
